@@ -70,6 +70,43 @@ function DealModal({ onClose, onConfirm }) {
   );
 }
 
+function ProposalModal({ onClose, onConfirm }) {
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onConfirm(value);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-ink/60 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-xl2 w-full max-w-sm p-5">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-display font-semibold text-ink">Cadastrar proposta</h2>
+          <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-500">Valor proposto (R$)</label>
+            <input type="number" step="0.01" className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm"
+              value={value} onChange={(e) => setValue(e.target.value)} />
+          </div>
+          <button disabled={saving} className="w-full bg-brand text-ink rounded-lg py-2.5 text-sm font-medium disabled:opacity-60">
+            {saving ? "Salvando..." : "Cadastrar proposta"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function ScheduleModal({ initial, onClose, onConfirm }) {
   const [form, setForm] = useState({
     type: initial?.next_activity_type || "visita",
@@ -177,8 +214,11 @@ export default function LeadDetail() {
   const [showDealModal, setShowDealModal] = useState(false);
   const [showLostModal, setShowLostModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showProposalModal, setShowProposalModal] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const bottomRef = useRef(null);
+  const conversaRef = useRef(null);
+  const msgInputRef = useRef(null);
 
   function load() {
     api.getLead(id).then(setData);
@@ -225,6 +265,31 @@ export default function LeadDetail() {
     setData((d) => ({ ...d, lead: updated }));
   }
 
+  async function handleProposal(value) {
+    const { lead: updated } = await api.updateLead(id, { status: "proposta", deal_value: value || null });
+    setData((d) => ({ ...d, lead: updated }));
+  }
+
+  function scrollToConversa() {
+    setTab("whatsapp");
+    conversaRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => msgInputRef.current?.focus(), 300);
+  }
+
+  async function handleShare() {
+    const text = `${lead.name} — ${lead.phone || ""} — ${lead.interest || "Sem interesse definido"}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: lead.name, text });
+      } catch {
+        /* usuário cancelou o compartilhamento */
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+      alert("Dados do lead copiados!");
+    }
+  }
+
   async function handleAddTag(tagId) {
     const { tags } = await api.addLeadTag(id, tagId);
     setData((d) => ({ ...d, lead: { ...d.lead, tags } }));
@@ -269,6 +334,7 @@ export default function LeadDetail() {
     <div className="max-w-5xl mx-auto p-4 md:p-8">
       {showDealModal && <DealModal onClose={() => setShowDealModal(false)} onConfirm={handleCloseDeal} />}
       {showLostModal && <LostReasonModal reasons={lostReasons} onClose={() => setShowLostModal(false)} onConfirm={handleMarkLost} />}
+      {showProposalModal && <ProposalModal onClose={() => setShowProposalModal(false)} onConfirm={handleProposal} />}
       {showScheduleModal && (
         <ScheduleModal
           initial={lead}
@@ -341,12 +407,62 @@ export default function LeadDetail() {
               </div>
             )}
 
+            {/* Atividade atual — só no mobile, estilo app */}
+            {(() => {
+              const pendente =
+                lead.assigned_at &&
+                (!lead.last_contact_at || lead.last_contact_at < lead.assigned_at) &&
+                !["ganho", "perdido"].includes(lead.status);
+              return (
+                <div
+                  className={`md:hidden -mx-5 px-5 py-3 mb-4 text-sm font-semibold ${
+                    pendente ? "bg-perdido/10 text-perdido" : "bg-ganho/10 text-ganho"
+                  }`}
+                >
+                  <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wide">Atividade atual</p>
+                  {pendente
+                    ? "Primeiro contato - Pendente"
+                    : lead.status === "ganho"
+                    ? "Negócio fechado"
+                    : lead.status === "perdido"
+                    ? "Lead arquivado"
+                    : "Em atendimento"}
+                  <p className="text-xs font-normal text-gray-500 mt-0.5">
+                    {new Date((lead.assigned_at || lead.created_at) + "Z").toLocaleString("pt-BR", {
+                      weekday: "long", day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              );
+            })()}
+
             <button
               onClick={() => setShowScheduleModal(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-sm font-medium text-ink mb-4"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-sm font-medium text-ink mb-2 md:mb-4"
             >
               <CalendarClock size={16} /> Agendar atividade
             </button>
+
+            <div className="md:hidden grid grid-cols-3 gap-2 mb-4">
+              <button onClick={() => setShowProposalModal(true)} className="rounded-xl border border-brand-dark text-brand-dark py-2.5 text-xs font-medium">
+                Cadastrar<br />Proposta
+              </button>
+              <button onClick={() => handleStatusChange("ganho")} className="rounded-xl border border-ganho text-ganho py-2.5 text-xs font-medium">
+                Negócio<br />Fechado
+              </button>
+              <button onClick={() => handleStatusChange("perdido")} className="rounded-xl border border-morno text-morno py-2.5 text-xs font-medium">
+                Arquivar<br />Lead
+              </button>
+            </div>
+
+            <button
+              onClick={scrollToConversa}
+              className="md:hidden w-full flex items-center justify-between border-t border-line py-3 text-sm font-semibold text-ink"
+            >
+              Conversa
+              <span className="text-xs font-normal text-gray-400">Ver conversa completa ›</span>
+            </button>
+            <div className="md:hidden border-t border-line" />
 
             <div className="flex flex-wrap items-center gap-1.5 mb-4">
               {(lead.tags || []).map((t) => (
@@ -398,7 +514,7 @@ export default function LeadDetail() {
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="hidden md:block space-y-3">
               <div>
                 <label className="text-xs font-medium text-gray-500">Etapa</label>
                 <select
@@ -474,7 +590,7 @@ export default function LeadDetail() {
         </div>
 
         {/* Chat / timeline */}
-        <div className="md:col-span-2 bg-card rounded-xl2 shadow-card flex flex-col h-[560px]">
+        <div ref={conversaRef} className="md:col-span-2 bg-card rounded-xl2 shadow-card flex flex-col h-[560px]">
           <div className="flex border-b border-line px-2">
             <button
               onClick={() => setTab("whatsapp")}
@@ -517,6 +633,7 @@ export default function LeadDetail() {
               </div>
               <form onSubmit={handleSendMessage} className="p-3 border-t border-line flex gap-2">
                 <input
+                  ref={msgInputRef}
                   value={msg}
                   onChange={(e) => setMsg(e.target.value)}
                   placeholder="Escreva uma mensagem..."
@@ -555,6 +672,23 @@ export default function LeadDetail() {
           )}
         </div>
       </div>
+
+      {/* Barra de ações fixa — substitui o menu inferior nessa tela */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-line flex items-stretch z-30 pb-[env(safe-area-inset-bottom)]">
+        <a
+          href={lead.phone ? `tel:${onlyDigits(lead.phone)}` : undefined}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium ${lead.phone ? "text-brand-dark" : "text-gray-300 pointer-events-none"}`}
+        >
+          <PhoneCall size={20} /> Ligar
+        </a>
+        <button onClick={scrollToConversa} className="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium text-brand-dark">
+          <MessageCircle size={20} /> Responder
+        </button>
+        <button onClick={handleShare} className="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium text-brand-dark">
+          <Forward size={20} /> Encaminhar
+        </button>
+      </div>
+      <div className="md:hidden h-16" />
     </div>
   );
 }

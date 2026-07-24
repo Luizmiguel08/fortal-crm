@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { LayoutDashboard, KanbanSquare, Users, LogOut, BarChart3, Inbox, Plug, Shuffle, Store, Tag, Building2 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import NotificationBell from "./NotificationBell.jsx";
@@ -26,6 +26,8 @@ const MOBILE_NAV = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const isLeadDetail = /^\/leads\/[^/]+$/.test(location.pathname);
 
   return (
     <div className="min-h-screen flex bg-surface">
@@ -82,28 +84,30 @@ export default function Layout() {
         </div>
       </div>
 
-      <main className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0">
+      <main className={`flex-1 min-w-0 pt-14 md:pt-0 md:pb-0 ${isLeadDetail ? "" : "pb-16"}`}>
         <Outlet />
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-line flex items-stretch z-30 pb-[env(safe-area-inset-bottom)]">
-        {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium ${
-                isActive ? "text-brand-dark" : "text-gray-400"
-              }`
-            }
-          >
-            <Icon size={20} />
-            {label}
-          </NavLink>
-        ))}
-      </nav>
+      {!isLeadDetail && (
+        <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-line flex items-stretch z-30 pb-[env(safe-area-inset-bottom)]">
+          {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium ${
+                  isActive ? "text-brand-dark" : "text-gray-400"
+                }`
+              }
+            >
+              <Icon size={20} />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

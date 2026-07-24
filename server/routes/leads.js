@@ -106,7 +106,7 @@ router.patch("/:id", (req, res) => {
   const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(req.params.id);
   if (!lead) return res.status(404).json({ error: "Lead não encontrado" });
 
-  const { status, temperature, assigned_to, interest, lost_reason, phone, phone2, email, uf, cidade, bairro, is_favorite, next_activity_at, next_activity_type, next_activity_note } = req.body;
+  const { status, temperature, assigned_to, interest, lost_reason, phone, phone2, email, uf, cidade, bairro, is_favorite, next_activity_at, next_activity_type, next_activity_note, deal_value } = req.body;
 
   if (status && !VALID_STATUSES.includes(status)) {
     return res.status(400).json({ error: "Status inválido" });
@@ -147,6 +147,7 @@ router.patch("/:id", (req, res) => {
   if (next_activity_at !== undefined) fields.push("next_activity_at = ?"), params.push(next_activity_at || null);
   if (next_activity_type !== undefined) fields.push("next_activity_type = ?"), params.push(next_activity_type || null);
   if (next_activity_note !== undefined) fields.push("next_activity_note = ?"), params.push(next_activity_note || null);
+  if (deal_value !== undefined) fields.push("deal_value = ?"), params.push(deal_value === "" ? null : deal_value);
   fields.push("updated_at = CURRENT_TIMESTAMP");
 
   params.push(req.params.id);
