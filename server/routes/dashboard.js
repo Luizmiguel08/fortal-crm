@@ -38,6 +38,48 @@ router.get("/stats", (req, res) => {
 
   const taxaConversao = totals.total > 0 ? ((ganhos / totals.total) * 100).toFixed(1) : "0.0";
 
+  // Corretores com mais leads pendentes de primeira resposta (ainda não contatados)
+  const semResposta = db
+    .prepare(
+      `SELECT u.id, u.name, COUNT(l.id) as total
+       FROM leads l JOIN users u ON u.id = l.assigned_to
+       WHERE l.assigned_to IS NOT NULL
+         AND l.in_bolsao = 0
+         AND l.status NOT IN ('ganho', 'perdido')
+         AND (l.last_contact_at IS NULL OR l.last_contact_at < l.assigned_at)
+       GROUP BY u.id
+       ORDER BY total DESC
+       LIMIT 5`
+    )
+    .all();
+
+  // Corretores com o tempo médio de primeira resposta mais rápido (em minutos)
+  const respostaRapida = db
+    .prepare(
+      `SELECT u.id, u.name,
+        COUNT(l.id) as total_respondidos,
+        AVG((julianday(l.last_contact_at) - julianday(l.assigned_at)) * 24 * 60) as media_minutos
+       FROM leads l JOIN users u ON u.id = l.assigned_to
+       WHERE l.assigned_at IS NOT NULL
+         AND l.last_contact_at IS NOT NULL
+         AND l.last_contact_at >= l.assigned_at
+       GROUP BY u.id
+       HAVING total_respondidos > 0
+       ORDER BY media_minutos ASC
+       LIMIT 5`
+    )
+    .all()
+    .map((r) => ({ ...r, media_minutos: Math.round(r.media_minutos) }));
+
+  // Tempo médio geral de resposta, pra card de "informações gerais"
+  const tempoMedioGeral = db
+    .prepare(
+      `SELECT AVG((julianday(last_contact_at) - julianday(assigned_at)) * 24 * 60) as media
+       FROM leads
+       WHERE assigned_at IS NOT NULL AND last_contact_at IS NOT NULL AND last_contact_at >= assigned_at`
+    )
+    .get();
+
   res.json({
     total: totals.total,
     ganhos,
@@ -48,6 +90,9 @@ router.get("/stats", (req, res) => {
     byTemperature,
     bySource,
     ranking,
+    semResposta,
+    respostaRapida,
+    tempoMedioMinutos: tempoMedioGeral.media ? Math.round(tempoMedioGeral.media) : null,
   });
 });
 

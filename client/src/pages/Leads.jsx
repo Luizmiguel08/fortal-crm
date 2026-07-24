@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Search, X } from "lucide-react";
 import { api } from "../api.js";
 import TempBadge from "../components/TempBadge.jsx";
+import ResponseCountdown from "../components/ResponseCountdown.jsx";
 
 const COLUMNS = [
   { key: "novo", label: "Novo" },
@@ -159,6 +160,9 @@ export default function Leads() {
                     {lead.interest && (
                       <p className="text-xs text-gray-500 truncate mb-1.5">{lead.interest}</p>
                     )}
+                    <div className="mb-1.5">
+                      <ResponseCountdown lead={lead} compact />
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-400">{lead.source}</span>
                       <span className="text-[11px] text-gray-400">

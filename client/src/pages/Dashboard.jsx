@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, Users, Target, AlertTriangle } from "lucide-react";
+import { TrendingUp, Users, Target, AlertTriangle, AlertCircle, Trophy, Timer } from "lucide-react";
 import { api } from "../api.js";
 import TempBadge from "../components/TempBadge.jsx";
+
+function formatMinutes(min) {
+  if (min == null) return "—";
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  return `${h}h${String(min % 60).padStart(2, "0")}min`;
+}
 
 const STATUS_LABELS = {
   novo: "Novo",
@@ -49,6 +56,59 @@ export default function Dashboard() {
         <StatCard icon={Target} label="Taxa de conversão" value={`${stats.taxaConversao}%`} accent="bg-ganho" />
         <StatCard icon={TrendingUp} label="Negócios ganhos" value={stats.ganhos} accent="bg-morno" />
         <StatCard icon={AlertTriangle} label="Sem atribuição" value={stats.semAtribuicao} accent="bg-perdido" />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4 mb-6">
+        <div className="bg-card rounded-xl2 shadow-card p-5">
+          <h2 className="font-display font-semibold text-ink text-sm mb-4 flex items-center gap-2">
+            <AlertCircle size={16} className="text-perdido" /> Corretores com mais leads sem resposta
+          </h2>
+          {stats.semResposta?.length ? (
+            <div className="space-y-3">
+              {stats.semResposta.map((r, i) => (
+                <div key={r.id} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 truncate">
+                    <span className="text-gray-400 mr-2">{i + 1}</span>
+                    {r.name}
+                  </span>
+                  <span className="text-xs font-semibold text-perdido bg-perdido/10 rounded-full px-2 py-0.5 shrink-0">
+                    {r.total} lead{r.total > 1 ? "s" : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">Ninguém com pendências agora. 🎉</p>
+          )}
+        </div>
+
+        <div className="bg-card rounded-xl2 shadow-card p-5">
+          <h2 className="font-display font-semibold text-ink text-sm mb-4 flex items-center gap-2">
+            <Trophy size={16} className="text-morno" /> Resposta mais rápida
+          </h2>
+          {stats.respostaRapida?.length ? (
+            <div className="space-y-3">
+              {stats.respostaRapida.map((r, i) => (
+                <div key={r.id} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 truncate">
+                    <span className="mr-2">{["🥇", "🥈", "🥉"][i] || `#${i + 1}`}</span>
+                    {r.name}
+                  </span>
+                  <span className="text-xs font-medium text-ink shrink-0">{formatMinutes(r.media_minutos)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">Ainda sem dados suficientes.</p>
+          )}
+        </div>
+
+        <div className="bg-card rounded-xl2 shadow-card p-5 flex flex-col justify-center items-center text-center">
+          <h2 className="font-display font-semibold text-ink text-sm mb-2 flex items-center gap-2">
+            <Timer size={16} className="text-brand-dark" /> Tempo médio de resposta
+          </h2>
+          <p className="text-3xl font-display font-semibold text-brand-dark">{formatMinutes(stats.tempoMedioMinutos)}</p>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">

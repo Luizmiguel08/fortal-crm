@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Phone, Mail, MapPin, MessageCircle, X, Plus, Tag as TagIcon } from "lucide-react";
+import { ArrowLeft, Send, Phone, Mail, MapPin, MessageCircle, X, Plus, Tag as TagIcon, PhoneCall, UserPlus, Forward } from "lucide-react";
 import { api } from "../api.js";
 import TempBadge from "../components/TempBadge.jsx";
+import ResponseCountdown from "../components/ResponseCountdown.jsx";
+import { downloadLeadVCard } from "../lib/vcard.js";
+
+function onlyDigits(phone) {
+  return (phone || "").replace(/[^\d]/g, "");
+}
+
+function waLink(phone) {
+  const digits = onlyDigits(phone);
+  if (!digits) return null;
+  const withCountry = digits.length <= 11 ? `55${digits}` : digits;
+  return `https://wa.me/${withCountry}`;
+}
 
 const STATUS_OPTIONS = ["novo", "atendimento", "qualificado", "proposta", "ganho", "perdido"];
 const TEMP_OPTIONS = ["quente", "morno", "frio"];
@@ -209,11 +222,43 @@ export default function LeadDetail() {
         {/* Info lateral */}
         <div className="md:col-span-1 space-y-4">
           <div className="bg-card rounded-xl2 shadow-card p-5">
-            <div className="flex items-center justify-between mb-1">
-              <h1 className="font-display font-semibold text-lg text-ink">{lead.name}</h1>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              <h1 className="font-display font-semibold text-lg text-ink truncate">{lead.name}</h1>
               <TempBadge temperature={lead.temperature} showLabel={false} />
             </div>
+            <div className="flex items-center gap-2 mb-3">
+              <ResponseCountdown lead={lead} />
+            </div>
             {lead.interest && <p className="text-sm text-gray-500 mb-3">{lead.interest}</p>}
+
+            {(lead.phone || lead.email) && (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <a
+                  href={lead.phone ? `tel:${onlyDigits(lead.phone)}` : undefined}
+                  className={`flex flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-medium ${
+                    lead.phone ? "bg-ganho/10 text-ganho" : "bg-line text-gray-300 pointer-events-none"
+                  }`}
+                >
+                  <PhoneCall size={17} /> Ligar
+                </a>
+                <a
+                  href={lead.phone ? waLink(lead.phone) : undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`flex flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-medium ${
+                    lead.phone ? "bg-brand/15 text-brand-dark" : "bg-line text-gray-300 pointer-events-none"
+                  }`}
+                >
+                  <MessageCircle size={17} /> WhatsApp
+                </a>
+                <button
+                  onClick={() => downloadLeadVCard(lead)}
+                  className="flex flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-medium bg-surface text-ink"
+                >
+                  <UserPlus size={17} /> Salvar
+                </button>
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-1.5 mb-4">
               {(lead.tags || []).map((t) => (
@@ -241,12 +286,15 @@ export default function LeadDetail() {
             <div className="space-y-2 text-sm text-gray-600 mb-4">
               {lead.phone && (
                 <div className="flex items-center gap-2">
-                  <Phone size={14} className="text-gray-400" /> {lead.phone}
+                  <Phone size={14} className="text-gray-400" />
+                  <a href={`tel:${onlyDigits(lead.phone)}`} className="text-brand-dark hover:underline">{lead.phone}</a>
                 </div>
               )}
               {lead.phone2 && (
                 <div className="flex items-center gap-2">
-                  <Phone size={14} className="text-gray-400" /> {lead.phone2} <span className="text-xs text-gray-400">(2º telefone)</span>
+                  <Phone size={14} className="text-gray-400" />
+                  <a href={`tel:${onlyDigits(lead.phone2)}`} className="text-brand-dark hover:underline">{lead.phone2}</a>
+                  <span className="text-xs text-gray-400">(2º telefone)</span>
                 </div>
               )}
               {lead.email && (

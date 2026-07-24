@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE TABLE IF NOT EXISTS bolsao_settings (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   enabled INTEGER NOT NULL DEFAULT 1,
-  limit_minutes INTEGER NOT NULL DEFAULT 30,
+  limit_minutes INTEGER NOT NULL DEFAULT 5,
   visibility TEXT NOT NULL DEFAULT 'todos', -- 'todos' | 'fila'
   hours TEXT NOT NULL
 );
@@ -218,7 +218,7 @@ const defaultHours = JSON.stringify({
 });
 const settingsExist = db.prepare("SELECT COUNT(*) as c FROM bolsao_settings").get().c;
 if (!settingsExist) {
-  db.prepare("INSERT INTO bolsao_settings (id, enabled, limit_minutes, visibility, hours) VALUES (1, 1, 30, 'todos', ?)").run(defaultHours);
+  db.prepare("INSERT INTO bolsao_settings (id, enabled, limit_minutes, visibility, hours) VALUES (1, 1, 5, 'todos', ?)").run(defaultHours);
 }
 
 // empresa matriz padrão (só na primeira vez)
