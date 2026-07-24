@@ -1,0 +1,59 @@
+workflows:
+  ios-fortal-crm:
+    name: Fortal CRM - iOS (App Store / TestFlight)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: fortal_crm_appstore # nome da integração criada no painel do Codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: br.com.fortalcrm.crm
+      vars:
+        XCODE_WORKSPACE: "client/ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Instalar dependências do frontend
+        script: |
+          cd client
+          npm install
+      - name: Buildar os assets web
+        script: |
+          cd client
+          npm run build
+      - name: Sincronizar projeto iOS do Capacitor
+        script: |
+          cd client
+          npx cap sync ios
+      - name: Instalar dependências do CocoaPods
+        script: |
+          cd client/ios/App
+          pod install
+      - name: Configurar assinatura de código automaticamente
+        script: |
+          xcode-project use-profiles
+      - name: Buildar o .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # depois que testar no TestFlight e estiver satisfeito, mude pra true
+        # e preencha a ficha da loja no App Store Connect antes de enviar pra revisão:
+        submit_to_app_store: false

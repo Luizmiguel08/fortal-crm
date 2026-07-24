@@ -39,15 +39,46 @@ Isso roda no Windows, Mac ou Linux — não precisa de Mac pro Android.
 
 ---
 
-## 3. Buildar o iOS (precisa de Mac + Xcode)
+## 3. Buildar o iOS com Codemagic (sem precisar de Mac)
 
-Aqui **não tem jeito de fugir do Mac** — é exigência da própria Apple.
+Já deixei um arquivo `codemagic.yaml` pronto na raiz do projeto. Veja o passo a passo:
 
-**Se você não tem um Mac**, alternativas sem comprar um:
-- **MacinCloud** ou **Amazon EC2 Mac instances** — Mac alugado na nuvem por hora/mês
-- **Codemagic** ou **Ionic Appflow** — serviços de CI que compilam e assinam o app iOS pra você, sem precisar de Mac próprio (pagos, mas com planos de entrada)
+### 3.1 Criar conta e conectar o repositório
+1. Acesse **https://codemagic.io** e crie uma conta (dá pra entrar direto com o login do GitHub)
+2. Clique em **Add application** → escolha o repositório **fortal-crm**
+3. O Codemagic vai detectar o `codemagic.yaml` automaticamente
 
-Com um Mac disponível:
+### 3.2 Criar sua conta de desenvolvedor Apple (se ainda não tem)
+1. Acesse **https://developer.apple.com/programs/** → assine o Apple Developer Program (US$ 99/ano)
+2. Aguarde a aprovação (geralmente rápido, às vezes leva 1-2 dias)
+
+### 3.3 Conectar a Apple ao Codemagic (integração automática de certificados)
+1. No painel do Codemagic: **Teams → Integrations → App Store Connect**
+2. Clique em **Generate API Key** — isso te leva direto pro App Store Connect da Apple pra gerar uma chave (o Codemagic explica esse passo na tela, é só seguir)
+3. Dê um nome pra essa integração, por exemplo `fortal_crm_appstore`
+4. **Importante:** esse mesmo nome precisa estar no `codemagic.yaml`, no campo `integrations.app_store_connect` (já deixei como `fortal_crm_appstore` — só troque se você usar outro nome)
+
+### 3.4 Criar o app no App Store Connect
+1. Acesse **https://appstoreconnect.apple.com** → **Apps** → **+** → **Novo app**
+2. Bundle ID: `br.com.fortalcrm.crm` (o Codemagic consegue criar esse Bundle ID pra você automaticamente na primeira build, ou você cria manualmente em **Certificates, Identifiers & Profiles**)
+3. Preencha nome do app, idioma principal, categoria
+
+### 3.5 Rodar a primeira build
+1. No Codemagic, vá na aba do seu app → **Start new build** → escolha o workflow `ios-fortal-crm`
+2. Acompanhe o log — a primeira build demora mais (10-20 min)
+3. Se der certo, o `.ipa` vai direto pro **TestFlight** (configurado em `submit_to_testflight: true`)
+4. Baixe o app **TestFlight** no seu iPhone e teste antes de mandar pra revisão de verdade
+
+### 3.6 Enviar pra revisão da App Store
+1. Depois de testar no TestFlight e estiver satisfeito, preencha a ficha completa da loja no App Store Connect (screenshots, descrição, política de privacidade, classificação etária)
+2. No `codemagic.yaml`, mude `submit_to_app_store: false` para `true`
+3. Rode a build de novo, ou envie manualmente pela interface do App Store Connect
+
+---
+
+## 4. Se preferir buildar o iOS localmente (com Mac)
+
+
 1. Instale o [Xcode](https://apps.apple.com/app/xcode/id497799835) (App Store)
 2. `cd client && npm install && npm run build`
 3. `npx cap sync ios`
@@ -60,7 +91,7 @@ Com um Mac disponível:
 
 ---
 
-## 4. Ícone e splash screen
+## 5. Ícone e splash screen
 
 Já gerados a partir de `client/resources/icon.png` e `client/resources/splash.png`.
 Pra trocar o visual, substitua essas duas imagens e rode:
@@ -71,7 +102,7 @@ npx capacitor-assets generate --iconBackgroundColor '#0E0C0A' --splashBackground
 
 ---
 
-## 5. Dica de aprovação
+## 6. Dica de aprovação
 
 Apps que são "só um site dentro de uma casca" às vezes são recusados,
 principalmente pela Apple. O Fortal CRM já tem bastante coisa nativa de
