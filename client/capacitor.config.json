@@ -1,0 +1,12 @@
+{
+  "appId": "br.com.fortalcrm.crm",
+  "appName": "Fortal CRM",
+  "webDir": "dist",
+  "server": {
+    "url": "https://fortalcrm.com.br",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

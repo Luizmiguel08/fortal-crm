@@ -6,3 +6,20 @@ dist/
 *.sqlite-shm
 .env
 .DS_Store
+
+# Capacitor / Android
+client/android/app/build/
+client/android/.gradle/
+client/android/local.properties
+client/android/app/release/
+client/android/captures/
+client/android/build/
+client/android/*.iml
+client/android/.idea/
+
+# Capacitor / iOS
+client/ios/App/Pods/
+client/ios/App/build/
+client/ios/App/App.xcworkspace/xcuserdata/
+client/ios/App/App.xcodeproj/xcuserdata/
+client/ios/App/Podfile.lock
