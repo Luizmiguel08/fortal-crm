@@ -81,16 +81,27 @@ router.post("/webhook", async (req, res) => {
 
   try {
     const entries = req.body?.entry || [];
+    console.log(`[facebook] webhook recebido — ${entries.length} entrada(s)`);
     for (const entry of entries) {
       const pageId = entry.id;
       const page = db.prepare("SELECT * FROM fb_pages WHERE page_id = ?").get(pageId);
-      if (!page) continue; // página não conectada no sistema
+      if (!page) {
+        console.warn(`[facebook] page_id ${pageId} não está conectado no CRM — evento ignorado`);
+        continue;
+      }
 
       for (const change of entry.changes || []) {
-        if (change.field !== "leadgen") continue;
+        if (change.field !== "leadgen") {
+          console.log(`[facebook] campo "${change.field}" ignorado (só processamos "leadgen")`);
+          continue;
+        }
         const leadgenId = change.value?.leadgen_id;
-        if (!leadgenId) continue;
+        if (!leadgenId) {
+          console.warn("[facebook] evento leadgen sem leadgen_id, ignorado");
+          continue;
+        }
 
+        console.log(`[facebook] buscando dados do lead ${leadgenId} na Graph API...`);
         const resp = await fetch(
           `https://graph.facebook.com/v20.0/${leadgenId}?access_token=${page.access_token}`
         );
@@ -112,6 +123,7 @@ router.post("/webhook", async (req, res) => {
           formName: data.form_name,
           pageName: page.page_name,
         });
+        console.log(`[facebook] lead criado com sucesso: ${fields.full_name || fields.name || "(sem nome)"}`);
       }
     }
   } catch (err) {
