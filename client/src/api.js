@@ -39,6 +39,7 @@ export const api = {
   deleteLead: (id) => request(`/leads/${id}`, { method: "DELETE" }),
   addActivity: (id, data) => request(`/leads/${id}/activities`, { method: "POST", body: data }),
   sendMessage: (id, body) => request(`/leads/${id}/messages`, { method: "POST", body: { body } }),
+  getMyQueuePosition: () => request("/queue-position/my-position"),
 
   getAgents: () => request("/agents"),
   createAgent: (data) => request("/agents", { method: "POST", body: data }),

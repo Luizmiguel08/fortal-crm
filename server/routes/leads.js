@@ -106,7 +106,7 @@ router.patch("/:id", (req, res) => {
   const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(req.params.id);
   if (!lead) return res.status(404).json({ error: "Lead não encontrado" });
 
-  const { status, temperature, assigned_to, interest, lost_reason, phone, phone2, email, uf, cidade, bairro } = req.body;
+  const { status, temperature, assigned_to, interest, lost_reason, phone, phone2, email, uf, cidade, bairro, is_favorite, next_activity_at, next_activity_type, next_activity_note } = req.body;
 
   if (status && !VALID_STATUSES.includes(status)) {
     return res.status(400).json({ error: "Status inválido" });
@@ -143,6 +143,10 @@ router.patch("/:id", (req, res) => {
   if (uf !== undefined) fields.push("uf = ?"), params.push(uf || null);
   if (cidade !== undefined) fields.push("cidade = ?"), params.push(cidade || null);
   if (bairro !== undefined) fields.push("bairro = ?"), params.push(bairro || null);
+  if (is_favorite !== undefined) fields.push("is_favorite = ?"), params.push(is_favorite ? 1 : 0);
+  if (next_activity_at !== undefined) fields.push("next_activity_at = ?"), params.push(next_activity_at || null);
+  if (next_activity_type !== undefined) fields.push("next_activity_type = ?"), params.push(next_activity_type || null);
+  if (next_activity_note !== undefined) fields.push("next_activity_note = ?"), params.push(next_activity_note || null);
   fields.push("updated_at = CURRENT_TIMESTAMP");
 
   params.push(req.params.id);

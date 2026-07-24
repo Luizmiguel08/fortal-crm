@@ -200,6 +200,10 @@ ensureColumn("leads", "deal_date", "TEXT");
 ensureColumn("leads", "deal_type", "TEXT");
 ensureColumn("leads", "lost_reason", "TEXT");
 ensureColumn("leads", "phone2", "TEXT");
+ensureColumn("leads", "is_favorite", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("leads", "next_activity_at", "TEXT");
+ensureColumn("leads", "next_activity_type", "TEXT"); // 'visita' | 'ligacao' | 'reuniao' etc.
+ensureColumn("leads", "next_activity_note", "TEXT");
 
 const webhooksExist = db.prepare("SELECT COUNT(*) as c FROM webhooks_config").get().c;
 if (!webhooksExist) {

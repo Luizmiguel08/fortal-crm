@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Phone, Mail, MapPin, MessageCircle, X, Plus, Tag as TagIcon, PhoneCall, UserPlus, Forward } from "lucide-react";
+import { ArrowLeft, Send, Phone, Mail, MapPin, MessageCircle, X, Plus, Tag as TagIcon, PhoneCall, UserPlus, Forward, Star, CalendarClock } from "lucide-react";
 import { api } from "../api.js";
 import TempBadge from "../components/TempBadge.jsx";
 import ResponseCountdown from "../components/ResponseCountdown.jsx";
@@ -70,6 +70,61 @@ function DealModal({ onClose, onConfirm }) {
   );
 }
 
+function ScheduleModal({ initial, onClose, onConfirm }) {
+  const [form, setForm] = useState({
+    type: initial?.next_activity_type || "visita",
+    date: initial?.next_activity_at ? initial.next_activity_at.slice(0, 16) : "",
+    note: initial?.next_activity_note || "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onConfirm(form);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-ink/60 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-xl2 w-full max-w-sm p-5">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-display font-semibold text-ink">Agendar atividade</h2>
+          <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-500">Tipo</label>
+            <select className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm"
+              value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              <option value="visita">Visita</option>
+              <option value="ligacao">Ligação</option>
+              <option value="reuniao">Reunião</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500">Data e hora</label>
+            <input required type="datetime-local" className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm"
+              value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500">Observação (opcional)</label>
+            <input className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm"
+              value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+          </div>
+          <button disabled={saving} className="w-full bg-brand text-ink rounded-lg py-2.5 text-sm font-medium disabled:opacity-60">
+            {saving ? "Salvando..." : "Agendar"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function LostReasonModal({ reasons, onClose, onConfirm }) {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
@@ -121,6 +176,7 @@ export default function LeadDetail() {
   const [lostReasons, setLostReasons] = useState([]);
   const [showDealModal, setShowDealModal] = useState(false);
   const [showLostModal, setShowLostModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const bottomRef = useRef(null);
 
@@ -213,6 +269,20 @@ export default function LeadDetail() {
     <div className="max-w-5xl mx-auto p-4 md:p-8">
       {showDealModal && <DealModal onClose={() => setShowDealModal(false)} onConfirm={handleCloseDeal} />}
       {showLostModal && <LostReasonModal reasons={lostReasons} onClose={() => setShowLostModal(false)} onConfirm={handleMarkLost} />}
+      {showScheduleModal && (
+        <ScheduleModal
+          initial={lead}
+          onClose={() => setShowScheduleModal(false)}
+          onConfirm={async (form) => {
+            const { lead: updated } = await api.updateLead(id, {
+              next_activity_at: new Date(form.date).toISOString(),
+              next_activity_type: form.type,
+              next_activity_note: form.note,
+            });
+            setData((d) => ({ ...d, lead: updated }));
+          }}
+        />
+      )}
 
       <button onClick={() => navigate("/leads")} className="flex items-center gap-1.5 text-sm text-gray-500 mb-4">
         <ArrowLeft size={16} /> Voltar para leads
@@ -224,10 +294,21 @@ export default function LeadDetail() {
           <div className="bg-card rounded-xl2 shadow-card p-5">
             <div className="flex items-center justify-between mb-1 gap-2">
               <h1 className="font-display font-semibold text-lg text-ink truncate">{lead.name}</h1>
-              <TempBadge temperature={lead.temperature} showLabel={false} />
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => updateField("is_favorite", !lead.is_favorite)} title="Favoritar">
+                  <Star size={18} className={lead.is_favorite ? "fill-morno text-morno" : "text-gray-300"} />
+                </button>
+                <TempBadge temperature={lead.temperature} showLabel={false} />
+              </div>
             </div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <ResponseCountdown lead={lead} />
+              {lead.next_activity_at && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-dark bg-brand/15 rounded-full px-2 py-0.5">
+                  <CalendarClock size={11} />
+                  {lead.next_activity_type === "visita" ? "Visita" : "Atividade"} agendada
+                </span>
+              )}
             </div>
             {lead.interest && <p className="text-sm text-gray-500 mb-3">{lead.interest}</p>}
 
@@ -259,6 +340,13 @@ export default function LeadDetail() {
                 </button>
               </div>
             )}
+
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-sm font-medium text-ink mb-4"
+            >
+              <CalendarClock size={16} /> Agendar atividade
+            </button>
 
             <div className="flex flex-wrap items-center gap-1.5 mb-4">
               {(lead.tags || []).map((t) => (

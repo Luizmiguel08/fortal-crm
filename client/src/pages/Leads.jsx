@@ -4,6 +4,7 @@ import { Plus, Search, X } from "lucide-react";
 import { api } from "../api.js";
 import TempBadge from "../components/TempBadge.jsx";
 import ResponseCountdown from "../components/ResponseCountdown.jsx";
+import MobileLeadList from "../components/MobileLeadList.jsx";
 
 const COLUMNS = [
   { key: "novo", label: "Novo" },
@@ -101,11 +102,20 @@ export default function Leads() {
   }
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="md:p-8">
       {showModal && (
         <NewLeadModal onClose={() => setShowModal(false)} onCreated={(l) => setLeads((p) => [l, ...p])} />
       )}
 
+      <MobileLeadList />
+      <button
+        onClick={() => setShowModal(true)}
+        className="md:hidden fixed bottom-20 right-4 z-20 w-12 h-12 rounded-full bg-brand text-ink shadow-soft flex items-center justify-center"
+      >
+        <Plus size={22} />
+      </button>
+
+      <div className="hidden md:block p-4 md:p-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="font-display text-xl font-semibold text-ink">Leads</h1>
@@ -175,6 +185,7 @@ export default function Leads() {
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
