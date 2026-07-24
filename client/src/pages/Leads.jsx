@@ -6,6 +6,7 @@ import { useAuth } from "../AuthContext.jsx";
 import TempBadge from "../components/TempBadge.jsx";
 import ResponseCountdown from "../components/ResponseCountdown.jsx";
 import MobileLeadList from "../components/MobileLeadList.jsx";
+import { useLeadEvents } from "../lib/liveEvents.js";
 
 function ClearLeadsModal({ onClose, onConfirm }) {
   const [text, setText] = useState("");
@@ -148,6 +149,10 @@ export default function Leads() {
     const t = setTimeout(load, 250);
     return () => clearTimeout(t);
   }, [query]);
+
+  useLeadEvents((lead) => {
+    setLeads((prev) => (prev.some((l) => l.id === lead.id) ? prev : [lead, ...prev]));
+  });
 
   async function handleDrop(status) {
     if (!dragId) return;

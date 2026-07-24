@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { api } from "../api.js";
+import { useLeadEvents } from "../lib/liveEvents.js";
 
 export default function NotificationBell({ dark = false }) {
   const [notifications, setNotifications] = useState([]);
@@ -15,9 +16,12 @@ export default function NotificationBell({ dark = false }) {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 60000); // atualiza a cada 1 min
+    const interval = setInterval(load, 30000); // fallback, caso o tempo real falhe
     return () => clearInterval(interval);
   }, []);
+
+  // Atualiza na hora que cair um lead novo em qualquer lugar do sistema
+  useLeadEvents(() => load(), { sound: false });
 
   useEffect(() => {
     function handleClickOutside(e) {

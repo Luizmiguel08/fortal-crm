@@ -17,6 +17,7 @@ import db from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { pickNextAgent, clearRankOverride } from "../lib/distribution.js";
 import { fireWebhook } from "../lib/webhooks.js";
+import { broadcast } from "../lib/events.js";
 
 const router = Router();
 
@@ -74,6 +75,7 @@ router.post("/inbound", (req, res) => {
 
   const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(leadId);
   fireWebhook("on_create_lead", lead);
+  broadcast("lead_created", lead);
 
   res.status(201).json({ ok: true, lead_id: leadId });
 });

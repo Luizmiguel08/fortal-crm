@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { pickNextAgent, clearRankOverride } from "../lib/distribution.js";
 import { fireWebhook } from "../lib/webhooks.js";
 import { sendWhatsAppMessage } from "./whatsapp.js";
+import { broadcast } from "../lib/events.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -100,6 +101,7 @@ router.post("/", (req, res) => {
 
   const lead = leadWithAgent(db.prepare("SELECT * FROM leads WHERE id = ?").get(leadId));
   fireWebhook("on_create_lead", lead);
+  broadcast("lead_created", lead);
   res.status(201).json({ lead });
 });
 

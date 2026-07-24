@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../AuthContext.jsx";
 import ResponseCountdown from "./ResponseCountdown.jsx";
+import { useLeadEvents } from "../lib/liveEvents.js";
 
 const TABS = [
   { key: "a_fazer", label: "A fazer" },
@@ -78,6 +79,8 @@ export default function MobileLeadList() {
     const t = setInterval(load, 20000); // atualiza sozinho, já que o bolsão se move com o tempo
     return () => clearInterval(t);
   }, [query]);
+
+  useLeadEvents(() => load(), { sound: false });
 
   useEffect(() => {
     api

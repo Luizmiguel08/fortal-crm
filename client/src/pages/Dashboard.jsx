@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { TrendingUp, Users, Target, AlertTriangle, AlertCircle, Trophy, Timer } from "lucide-react";
 import { api } from "../api.js";
 import TempBadge from "../components/TempBadge.jsx";
+import { useLeadEvents } from "../lib/liveEvents.js";
 
 function formatMinutes(min) {
   if (min == null) return "—";
@@ -39,6 +40,8 @@ export default function Dashboard() {
   useEffect(() => {
     api.getStats().then(setStats).catch(() => {});
   }, []);
+
+  useLeadEvents(() => api.getStats().then(setStats).catch(() => {}), { sound: false });
 
   if (!stats) {
     return <div className="p-6 text-gray-400 text-sm">Carregando métricas...</div>;

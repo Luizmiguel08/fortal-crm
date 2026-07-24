@@ -1,7 +1,9 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { LayoutDashboard, KanbanSquare, Users, LogOut, BarChart3, Inbox, Plug, Shuffle, Store, Tag, Building2 } from "lucide-react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { LayoutDashboard, KanbanSquare, Users, LogOut, BarChart3, Inbox, Plug, Shuffle, Store, Tag, Building2, Sparkles, X } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import NotificationBell from "./NotificationBell.jsx";
+import { useLeadEvents } from "../lib/liveEvents.js";
 
 const DESKTOP_NAV = [
   { to: "/", label: "Painel", icon: LayoutDashboard, end: true },
@@ -27,7 +29,14 @@ const MOBILE_NAV = [
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isLeadDetail = /^\/leads\/[^/]+$/.test(location.pathname);
+  const [toast, setToast] = useState(null);
+
+  useLeadEvents((lead) => {
+    setToast(lead);
+    setTimeout(() => setToast((t) => (t?.id === lead.id ? null : t)), 6000);
+  });
 
   return (
     <div className="min-h-screen flex bg-surface">
@@ -107,6 +116,31 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+      )}
+
+      {toast && (
+        <button
+          onClick={() => {
+            navigate(`/leads/${toast.id}`);
+            setToast(null);
+          }}
+          className="fixed top-4 md:top-4 right-4 left-4 md:left-auto md:w-96 z-50 bg-ink text-white rounded-xl2 shadow-soft px-4 py-3 flex items-start gap-3 text-left"
+        >
+          <Sparkles size={18} className="text-brand shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Lead novo! 🎉</p>
+            <p className="text-xs text-white/70 truncate">{toast.name} · {toast.source}</p>
+          </div>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setToast(null);
+            }}
+            className="text-white/50 shrink-0"
+          >
+            <X size={16} />
+          </span>
+        </button>
       )}
     </div>
   );

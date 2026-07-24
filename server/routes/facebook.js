@@ -30,6 +30,7 @@ import db from "../db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { pickNextAgent, clearRankOverride } from "../lib/distribution.js";
 import { fireWebhook } from "../lib/webhooks.js";
+import { broadcast } from "../lib/events.js";
 
 const router = Router();
 
@@ -57,6 +58,7 @@ function createLeadFromFacebook({ name, phone, email, formName, pageName }) {
   }
   const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(leadId);
   fireWebhook("on_create_lead", lead);
+  broadcast("lead_created", lead);
   if (nextAgent) clearRankOverride(nextAgent.id);
   return leadId;
 }
