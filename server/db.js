@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import bcrypt from "bcryptjs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { randomBytes } from "crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DB_PATH || path.join(__dirname, "c2s.sqlite");
@@ -123,6 +124,11 @@ CREATE TABLE IF NOT EXISTS webhooks_config (
   on_close_lead INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS lead_intake_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  api_key TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS stands (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -208,6 +214,12 @@ ensureColumn("leads", "next_activity_note", "TEXT");
 const webhooksExist = db.prepare("SELECT COUNT(*) as c FROM webhooks_config").get().c;
 if (!webhooksExist) {
   db.prepare("INSERT INTO webhooks_config (id, hook_url, on_create_lead, on_update_lead, on_close_lead) VALUES (1, NULL, 0, 0, 0)").run();
+}
+
+const intakeKeyExists = db.prepare("SELECT COUNT(*) as c FROM lead_intake_settings").get().c;
+if (!intakeKeyExists) {
+  const key = randomBytes(24).toString("hex");
+  db.prepare("INSERT INTO lead_intake_settings (id, api_key) VALUES (1, ?)").run(key);
 }
 
 // horário padrão: segunda a domingo, 09:00-21:59, todos ativos

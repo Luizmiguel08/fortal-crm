@@ -40,6 +40,8 @@ export const api = {
   addActivity: (id, data) => request(`/leads/${id}/activities`, { method: "POST", body: data }),
   sendMessage: (id, body) => request(`/leads/${id}/messages`, { method: "POST", body: { body } }),
   getMyQueuePosition: () => request("/queue-position/my-position"),
+  getIntakeKey: () => request("/lead-intake/key"),
+  rotateIntakeKey: () => request("/lead-intake/key/rotate", { method: "POST" }),
 
   getAgents: () => request("/agents"),
   createAgent: (data) => request("/agents", { method: "POST", body: data }),

@@ -3,6 +3,7 @@ import db from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { pickNextAgent, clearRankOverride } from "../lib/distribution.js";
 import { fireWebhook } from "../lib/webhooks.js";
+import { sendWhatsAppMessage } from "./whatsapp.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -206,10 +207,14 @@ router.post("/:id/activities", (req, res) => {
   res.status(201).json({ activities });
 });
 
-// Envia mensagem de WhatsApp (stub — ver routes/whatsapp.js para plugar API real)
-router.post("/:id/messages", (req, res) => {
+// Envia mensagem de WhatsApp — real se WHATSAPP_TOKEN/WHATSAPP_PHONE_ID estiverem
+// configurados no .env (ver server/routes/whatsapp.js), senão fica só registrado.
+router.post("/:id/messages", async (req, res) => {
   const { body } = req.body;
   if (!body) return res.status(400).json({ error: "Mensagem vazia" });
+
+  const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(req.params.id);
+  if (!lead) return res.status(404).json({ error: "Lead não encontrado" });
 
   const result = db
     .prepare("INSERT INTO messages (lead_id, direction, body, channel) VALUES (?, 'out', ?, 'whatsapp')")
@@ -217,8 +222,13 @@ router.post("/:id/messages", (req, res) => {
 
   db.prepare("UPDATE leads SET last_contact_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
 
-  // TODO produção: chamar aqui a API oficial do WhatsApp (Meta Cloud API / Twilio / Z-API)
-  // para enviar a mensagem de fato. Ver server/routes/whatsapp.js.
+  if (lead.phone) {
+    try {
+      await sendWhatsAppMessage(lead.phone, body);
+    } catch (err) {
+      console.error("[whatsapp] falha ao enviar mensagem real:", err);
+    }
+  }
 
   const message = db.prepare("SELECT * FROM messages WHERE id = ?").get(result.lastInsertRowid);
   res.status(201).json({ message });

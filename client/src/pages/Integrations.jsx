@@ -1,12 +1,85 @@
 import { useEffect, useState } from "react";
-import { Facebook, Trash2, ExternalLink, Webhook } from "lucide-react";
+import { Facebook, Trash2, ExternalLink, Webhook, Link2, Copy, Check, RefreshCw } from "lucide-react";
 import { api } from "../api.js";
+
+const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/api\/?$/, "");
 
 const HOOK_ACTIONS = [
   { key: "on_create_lead", label: "Lead criado" },
   { key: "on_update_lead", label: "Lead atualizado" },
   { key: "on_close_lead", label: "Lead fechado (ganho/perdido)" },
 ];
+
+function CopyField({ label, value }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <div className="mb-3">
+      <label className="text-xs font-medium text-gray-500">{label}</label>
+      <div className="mt-1 flex gap-2">
+        <input readOnly value={value} className="flex-1 rounded-lg border border-line px-3 py-2 text-xs bg-surface text-gray-600" />
+        <button onClick={copy} className="shrink-0 rounded-lg border border-line px-3 text-xs font-medium text-ink flex items-center gap-1">
+          {copied ? <Check size={13} className="text-ganho" /> : <Copy size={13} />}
+          {copied ? "Copiado" : "Copiar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PortalIntakeCard() {
+  const [apiKey, setApiKey] = useState("");
+  const [rotating, setRotating] = useState(false);
+
+  useEffect(() => {
+    api.getIntakeKey().then((d) => setApiKey(d.api_key));
+  }, []);
+
+  async function handleRotate() {
+    if (!confirm("Gerar uma chave nova vai invalidar a atual — qualquer portal/Zapier configurado com a chave antiga vai parar de enviar leads até você atualizar lá também. Continuar?")) return;
+    setRotating(true);
+    try {
+      const { api_key } = await api.rotateIntakeKey();
+      setApiKey(api_key);
+    } finally {
+      setRotating(false);
+    }
+  }
+
+  const webhookUrl = apiKey ? `${API_BASE}/api/lead-intake/inbound?key=${apiKey}` : "";
+
+  return (
+    <div className="bg-card rounded-xl2 shadow-card p-5 mb-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Link2 size={20} className="text-brand" />
+        <h2 className="font-display font-semibold text-ink text-sm">Portais imobiliários / Zapier / Make</h2>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        Use essa URL como "Webhook" na configuração de leads do portal (ZAP, VivaReal, OLX, Chaves na Mão) ou como ação
+        de webhook no Zapier/Make. Cada envio já entra distribuído automaticamente pro corretor da vez.
+      </p>
+
+      {apiKey && <CopyField label="URL do webhook (POST)" value={webhookUrl} />}
+
+      <div className="text-xs text-gray-500 bg-surface rounded-lg p-3 mb-3 space-y-1">
+        <p className="font-medium text-gray-600">Corpo (JSON) esperado:</p>
+        <code className="block text-[11px] whitespace-pre-wrap">{`{ "name": "...", "phone": "...", "email": "...", "source": "ZAP Imóveis", "interest": "Apto 2 quartos" }`}</code>
+      </div>
+
+      <button
+        onClick={handleRotate}
+        disabled={rotating}
+        className="flex items-center gap-1.5 text-xs font-medium text-perdido disabled:opacity-60"
+      >
+        <RefreshCw size={13} /> {rotating ? "Gerando..." : "Gerar nova chave (invalida a atual)"}
+      </button>
+    </div>
+  );
+}
 
 function WebhooksCard() {
   const [config, setConfig] = useState(null);
@@ -189,6 +262,8 @@ export default function Integrations() {
           <p className="text-gray-400">Isso só funciona com o backend publicado (não em localhost) — veja o DEPLOY.md.</p>
         </div>
       </div>
+
+      <PortalIntakeCard />
 
       <WebhooksCard />
     </div>

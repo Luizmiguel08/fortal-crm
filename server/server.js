@@ -18,6 +18,7 @@ import tagsRoutes from "./routes/tags.js";
 import companiesRoutes from "./routes/companies.js";
 import lostReasonsRoutes from "./routes/lost-reasons.js";
 import queuePositionRoutes from "./routes/queue-position.js";
+import leadIntakeRoutes from "./routes/lead-intake.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -43,6 +44,7 @@ app.use("/api/tags", tagsRoutes);
 app.use("/api/companies", companiesRoutes);
 app.use("/api/lost-reasons", lostReasonsRoutes);
 app.use("/api/queue-position", queuePositionRoutes);
+app.use("/api/lead-intake", leadIntakeRoutes);
 
 app.listen(PORT, () => {
   console.log(`✅ Fortal CRM API rodando em http://localhost:${PORT}`);
