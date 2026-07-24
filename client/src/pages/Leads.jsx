@@ -1,10 +1,63 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, Trash2 } from "lucide-react";
 import { api } from "../api.js";
+import { useAuth } from "../AuthContext.jsx";
 import TempBadge from "../components/TempBadge.jsx";
 import ResponseCountdown from "../components/ResponseCountdown.jsx";
 import MobileLeadList from "../components/MobileLeadList.jsx";
+
+function ClearLeadsModal({ onClose, onConfirm }) {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const canConfirm = text === "APAGAR TUDO";
+
+  async function handleConfirm() {
+    setLoading(true);
+    try {
+      await onConfirm();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-ink/60 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-xl2 w-full max-w-sm p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Trash2 size={20} className="text-perdido" />
+          <h2 className="font-display font-semibold text-ink">Apagar todos os leads</h2>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Isso apaga <strong>permanentemente</strong> todos os leads, mensagens e atividades do sistema — inclusive os
+          que vieram de integrações reais. Não dá pra desfazer.
+        </p>
+        <p className="text-xs text-gray-500 mb-2">
+          Pra confirmar, digite <strong>APAGAR TUDO</strong> abaixo:
+        </p>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full rounded-lg border border-line px-3 py-2 text-sm mb-4"
+          placeholder="APAGAR TUDO"
+        />
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 rounded-lg border border-line py-2.5 text-sm font-medium text-ink">
+            Cancelar
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!canConfirm || loading}
+            className="flex-1 rounded-lg bg-perdido text-white py-2.5 text-sm font-medium disabled:opacity-40"
+          >
+            {loading ? "Apagando..." : "Apagar tudo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const COLUMNS = [
   { key: "novo", label: "Novo" },
@@ -82,7 +135,9 @@ export default function Leads() {
   const [leads, setLeads] = useState([]);
   const [query, setQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
   const [dragId, setDragId] = useState(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   function load() {
@@ -105,6 +160,15 @@ export default function Leads() {
     <div className="md:p-8">
       {showModal && (
         <NewLeadModal onClose={() => setShowModal(false)} onCreated={(l) => setLeads((p) => [l, ...p])} />
+      )}
+      {showClearModal && (
+        <ClearLeadsModal
+          onClose={() => setShowClearModal(false)}
+          onConfirm={async () => {
+            await api.deleteAllLeads();
+            setLeads([]);
+          }}
+        />
       )}
 
       <MobileLeadList />
@@ -137,6 +201,15 @@ export default function Leads() {
           >
             <Plus size={16} /> Novo lead
           </button>
+          {user?.role === "admin" && (
+            <button
+              onClick={() => setShowClearModal(true)}
+              title="Apagar todos os leads (dados de teste)"
+              className="flex items-center gap-1.5 border border-line text-perdido rounded-lg px-3 py-2 text-sm font-medium"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </div>
 

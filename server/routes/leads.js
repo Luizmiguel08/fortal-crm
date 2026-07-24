@@ -1,6 +1,6 @@
 import { Router } from "express";
 import db from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { pickNextAgent, clearRankOverride } from "../lib/distribution.js";
 import { fireWebhook } from "../lib/webhooks.js";
 import { sendWhatsAppMessage } from "./whatsapp.js";
@@ -181,6 +181,20 @@ router.patch("/:id", (req, res) => {
   }
 
   res.json({ lead: updatedWithAgent });
+});
+
+// Exclui TODOS os leads de uma vez — usado pra limpar dados de demonstração
+// antes de começar a usar o sistema pra valer. Só admin, e exige confirmação
+// explícita por segurança (não dá pra desfazer).
+router.delete("/bulk/all", requireAdmin, (req, res) => {
+  if (req.query.confirm !== "APAGAR_TUDO") {
+    return res.status(400).json({ error: "Confirmação ausente. Envie ?confirm=APAGAR_TUDO" });
+  }
+  const countBefore = db.prepare("SELECT COUNT(*) as c FROM leads").get().c;
+  db.prepare("DELETE FROM messages").run();
+  db.prepare("DELETE FROM activities").run();
+  db.prepare("DELETE FROM leads").run();
+  res.json({ ok: true, deleted: countBefore });
 });
 
 router.delete("/:id", (req, res) => {

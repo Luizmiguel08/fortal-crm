@@ -37,6 +37,7 @@ export const api = {
   createLead: (data) => request("/leads", { method: "POST", body: data }),
   updateLead: (id, data) => request(`/leads/${id}`, { method: "PATCH", body: data }),
   deleteLead: (id) => request(`/leads/${id}`, { method: "DELETE" }),
+  deleteAllLeads: () => request("/leads/bulk/all?confirm=APAGAR_TUDO", { method: "DELETE" }),
   addActivity: (id, data) => request(`/leads/${id}/activities`, { method: "POST", body: data }),
   sendMessage: (id, body) => request(`/leads/${id}/messages`, { method: "POST", body: { body } }),
   getMyQueuePosition: () => request("/queue-position/my-position"),
